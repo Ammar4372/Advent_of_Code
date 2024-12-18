@@ -19,9 +19,7 @@ func mergesort(list []int) []int {
 	} else {
 		pivot = lenght / 2
 	}
-	left := mergesort(list[0:pivot])
-	right := mergesort(list[pivot:])
-	return merge(left, right)
+	return merge(mergesort(list[0:pivot]), mergesort(list[pivot:]))
 }
 func merge(left []int, right []int) []int {
 	i, j, merged := 0, 0, []int{}
@@ -43,27 +41,23 @@ func merge(left []int, right []int) []int {
 	return merged
 }
 func main() {
-	file, err := os.Open("input.txt")
+	file, err := os.Open("../input.txt")
 	if err != nil {
 		panic(err.Error())
 	}
-	buf := make([]byte, 1024)
-	str := ""
+	buf := make([]byte, 16384)
 	for {
-		var n int64 = 0
-		read, err := file.ReadAt(buf, n)
-		n += int64(read)
+		_, err = file.Read(buf)
 		if err != nil && err != io.EOF {
 			panic(err)
 		}
 		if err == io.EOF {
 			break
 		}
-		str += string(buf[:])
-
 	}
 	list1 := []int{}
 	list2 := []int{}
+	str := string(buf[:])
 	for _, value := range strings.Split(str, "\n") {
 		numbers := strings.Split(value, " ")
 		if len(numbers) != 1 {
@@ -73,7 +67,7 @@ func main() {
 			list2 = append(list2, int(number2))
 		}
 	}
-	fmt.Printf("list1 : %v, list2: %v\n", list1, list2)
+	fmt.Printf("lenght of list1 : %v, lenght of list2: %v\n", len(list1), len(list2))
 	list1 = mergesort(list1)
 	list2 = mergesort(list2)
 	i, j, sum_of_distance := 0, 0, 0
