@@ -13,7 +13,8 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	buf := make([]byte, 19185)
+	defer file.Close()
+	buf := make([]byte, 191858)
 	for {
 		_, err = file.Read(buf)
 		if err != nil && err != io.EOF {
@@ -26,84 +27,55 @@ func main() {
 	s := string(buf[:])
 	safe_reports := 0
 	for _, value := range strings.Split(s, "\n") {
-		if safe := check_report(value); safe {
+		numbers := strings.Split(value, " ")
+		if len(numbers) == 1 {
+			continue
+		}
+		nums := []int64{}
+		for i := range numbers {
+			number, _ := strconv.ParseInt(numbers[i], 10, 32)
+			nums = append(nums, number)
+		}
+		if check_report(nums) {
 			safe_reports += 1
+		} else {
+			fmt.Printf("Report: %v\n", nums)
+			for i := 0; i < len(nums); i++ {
+				nums_cp := copy_report(nums[0:i], nums[i+1:])
+				fmt.Printf("Report: %v, excluding: %d, index: %d\n", nums_cp, nums[i], i)
+				if check_report(nums_cp) {
+					safe_reports += 1
+					break
+				}
+			}
 		}
 	}
 	fmt.Printf("num of safe reports: %d\n", safe_reports)
 }
 
-func check_report(s string) bool {
-	numbers := strings.Split(s, " ")
-	if len(numbers) == 1 {
-		return false
-	}
-	nums := []int64{}
-	for i := range numbers {
-		number, _ := strconv.ParseInt(numbers[i], 10, 32)
-		nums = append(nums, number)
-	}
-	all_inc := false
-	all_dec := false
-	tolerance_used := false
-	for i := 0; i < len(nums)-1; i++ {
-		if nums[i] < nums[i+1] {
-			if all_dec && !tolerance_used {
-				tolerance_used = true
-				nums = append(nums[:i], nums[i+1:]...)
-				continue
-			}
-			all_inc = true
-			all_dec = false
-		} else if nums[i] > nums[i+1] {
-			if all_inc && !tolerance_used {
-				tolerance_used = true
-				nums = append(nums[:i], nums[i+1:]...)
-				continue
-			}
-			all_dec = true
-			all_inc = false
-		} else {
-			if !tolerance_used {
-				tolerance_used = true
-				nums = append(nums[:i], nums[i+1:]...)
-				continue
-			}
-			all_dec = false
-			all_inc = false
-		}
-	}
-	if !all_dec && !all_inc {
-		fmt.Printf("Report: %v\n", nums)
-		return false
-	}
+func check_report(nums []int64) bool {
+	diff := nums[0] - nums[1]
 	for i := 0; i < len(nums)-1; i++ {
 		var difference int64
-		if all_inc {
-			difference = nums[i+1] - nums[i]
-		} else {
+		if diff > 0 {
 			difference = nums[i] - nums[i+1]
+		} else {
+			difference = nums[i+1] - nums[i]
 		}
 		if difference < 1 || difference > 3 {
-			if tolerance_used {
-				break
-			}
-			tolerance_used = true
-			nums = append(nums[:i+1], nums[i+2:]...)
-		}
-	}
-	for i := 0; i < len(nums)-1; i++ {
-		var difference int64
-		if all_inc {
-			difference = nums[i+1] - nums[i]
-		} else {
-			difference = nums[i] - nums[i+1]
-		}
-		if difference < 1 || difference > 3 {
-			fmt.Printf("Report: %v\n", nums)
 			return false
 		}
 	}
-	fmt.Printf("Report: %v\n", nums)
 	return true
+}
+
+func copy_report(left, right []int64) []int64 {
+	cp := []int64{}
+	for i := range left {
+		cp = append(cp, left[i])
+	}
+	for i := range right {
+		cp = append(cp, right[i])
+	}
+	return cp
 }
