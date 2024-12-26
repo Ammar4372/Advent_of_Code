@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 )
 
 const TOKEN_INSTRUCTION = "instruction"
@@ -19,6 +20,16 @@ type lexer struct {
 	position      int
 	read_position int
 	ch            byte
+}
+
+type parser struct {
+	lex     *lexer
+	current token
+}
+
+type multiply struct {
+	num1 int
+	num2 int
 }
 
 type token struct {
@@ -37,15 +48,68 @@ func main() {
 		panic(err)
 	}
 	l := lexerInit(buf)
-	fmt.Printf("%s\n", l.input)
-	tokens := []token{}
-	for {
-		tokens = append(tokens, l.nextToken())
-		if l.ch == '\000' {
-			break
+	p := parser{
+		lex: l,
+	}
+	instructions := p.parse_instructions()
+	sum := 0
+	for _, v := range instructions {
+		sum += (v.num1 * v.num2)
+	}
+	fmt.Printf("Sum: %d\n", sum)
+}
+func (p *parser) parse_instructions() []multiply {
+	instructs := []multiply{}
+	for p.lex.ch != '\000' {
+		p.advance()
+		if p.current.token_type == TOKEN_INSTRUCTION {
+			fmt.Print(p.current, "\n")
+			m, err := p.parse_multiply()
+			if err != nil {
+				continue
+			}
+			instructs = append(instructs, m)
 		}
 	}
-	fmt.Printf("%v\n", tokens)
+	return instructs
+}
+func (p *parser) parse_multiply() (multiply, error) {
+	m := multiply{}
+	p.advance()
+	fmt.Print(p.current, "\n")
+	if p.current.token_type != TOKEN_OPENING_PAREN {
+		return m, fmt.Errorf("illegal")
+	}
+	p.advance()
+	fmt.Print(p.current, "\n")
+	if p.current.token_type != TOKEN_NUMBER {
+		return m, fmt.Errorf("illegal")
+	}
+	n, _ := strconv.ParseInt(p.current.literal, 10, 32)
+	p.advance()
+	fmt.Print(p.current, "\n")
+	m.num1 = int(n)
+	if p.current.token_type != TOKEN_COMMA {
+		return m, fmt.Errorf("illegal")
+	}
+
+	p.advance()
+	fmt.Print(p.current, "\n")
+	if p.current.token_type != TOKEN_NUMBER {
+		return m, fmt.Errorf("illegal")
+	}
+	n, _ = strconv.ParseInt(p.current.literal, 10, 32)
+	m.num2 = int(n)
+	p.advance()
+	fmt.Print(p.current, "\n")
+	if p.current.token_type != TOKEN_CLOSING_PAREN {
+		return m, fmt.Errorf("illegal")
+	}
+	return m, nil
+
+}
+func (p *parser) advance() {
+	p.current = p.lex.nextToken()
 }
 func (l *lexer) next() {
 	if l.read_position >= l.input_length {
@@ -87,8 +151,12 @@ func (l *lexer) nextToken() token {
 	switch {
 	case l.ch == 'm':
 		literal = l.readInstruct()
+		if literal == "mul" {
+			tok.token_type = TOKEN_INSTRUCTION
+		} else {
+			tok.token_type = TOKEN_ILLEGAL
+		}
 		tok.literal = literal
-		tok.token_type = TOKEN_INSTRUCTION
 		return tok
 	case l.ch >= '0' && l.ch <= '9':
 		literal = l.readInt()
