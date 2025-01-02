@@ -63,7 +63,6 @@ func (p *parser) parse_instructions() []multiply {
 	for p.lex.ch != '\000' {
 		p.advance()
 		if p.current.token_type == TOKEN_INSTRUCTION {
-			fmt.Print(p.current, "\n")
 			m, err := p.parse_multiply()
 			if err != nil {
 				continue
@@ -76,32 +75,27 @@ func (p *parser) parse_instructions() []multiply {
 func (p *parser) parse_multiply() (multiply, error) {
 	m := multiply{}
 	p.advance()
-	fmt.Print(p.current, "\n")
 	if p.current.token_type != TOKEN_OPENING_PAREN {
 		return m, fmt.Errorf("illegal")
 	}
 	p.advance()
-	fmt.Print(p.current, "\n")
 	if p.current.token_type != TOKEN_NUMBER {
 		return m, fmt.Errorf("illegal")
 	}
 	n, _ := strconv.ParseInt(p.current.literal, 10, 32)
 	p.advance()
-	fmt.Print(p.current, "\n")
 	m.num1 = int(n)
 	if p.current.token_type != TOKEN_COMMA {
 		return m, fmt.Errorf("illegal")
 	}
 
 	p.advance()
-	fmt.Print(p.current, "\n")
 	if p.current.token_type != TOKEN_NUMBER {
 		return m, fmt.Errorf("illegal")
 	}
 	n, _ = strconv.ParseInt(p.current.literal, 10, 32)
 	m.num2 = int(n)
 	p.advance()
-	fmt.Print(p.current, "\n")
 	if p.current.token_type != TOKEN_CLOSING_PAREN {
 		return m, fmt.Errorf("illegal")
 	}
